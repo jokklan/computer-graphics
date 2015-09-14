@@ -6,7 +6,7 @@ varying vec4 fColor;
 
 void main() {
   fColor = vec4( 0.0, 0.0, 0.0, 1.0 );
-  gl_PointSize = 20.0;
+  gl_PointSize = 10.0;
   gl_Position = vPosition;
 }
 </script>
@@ -20,8 +20,8 @@ varying vec4 fColor;
 
 void main() {
   fColor = vColor;
-  gl_PointSize = 20.0;
-  gl_Position = vPosition;
+  gl_PointSize = 10.0;
+  gl_Position = 0.5 * vPosition;
 }
 </script>
 
@@ -68,7 +68,3 @@ void main() {
   gl_FragColor = fColor;
 }
 </script>
-  <!--
-  gl_Position.x = -sin(theta) * vPosition.x + cos(theta) * vPosition.y;
-  gl_Position.y =  sin(theta) * vPosition.y + cos(theta) * vPosition.x;
-  -->
