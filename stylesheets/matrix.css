@@ -1,0 +1,33 @@
+.matrix {
+  position: relative!important;
+  width: auto!important;
+  display: table!important;
+}
+.matrix:before, .matrix:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  border: 2px solid #567482;
+  width: 6px;
+  height: 100%;
+}
+
+.matrix:before {
+  left: -6px;
+  border-right: 0px;
+}
+.matrix:after {
+  right: -6px;
+  border-left: 0px;
+}
+.matrix td {
+  padding: 5px!important;
+  text-align: center;
+  border: none!important;
+}
+
+table.code-table td {
+  border: none!important;
+  vertical-align: left;
+  white-space: pre-line;
+}

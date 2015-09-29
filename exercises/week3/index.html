@@ -4,8 +4,164 @@ title:  "Week 3"
 category: exercises
 custom_js:
 - week-3
+custom_css:
+- matrix
 ---
 <div id='part_1'>
   <h2>Part 1</h2>
+  <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+
+<div id='part_2'>
+  <h2>Part 2</h2>
+  <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+
+<div id='part_3'>
+  <h2>Part 3</h2>
+  <div>
+    <pre>
+      <code class="language-html" data-lang="html">
+<table class="code-table">
+  <tbody>
+    <tr>
+      <td colspan="2">
+        <h3>Model View Matrix</h3>
+        t = degrees<span style="vertical-align:sub;">t</span> &times; &pi;
+        p = degrees<span style="vertical-align:sub;">p</span> &times; &pi;
+
+        at =  (0, 0, 0)
+        up =  (0, 1, 0)
+        eye = (r &times; sin(p), r = sin(t), r &times; cos(p))
+
+        v = |at - eye|  # view direction vector
+        n = |v x up|    # perpendicular vector
+        u = |n x v|     # "new" up vector
+
+        v = - v
+      </td>
+    </tr>
+    <tr>
+      <td> MV =</td>
+      <td>
+        <table class="matrix">
+          <tbody>
+            <tr>
+              <td>n</td>
+              <td>- (n &middot; eye)</td>
+              <td>0</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td>u</td>
+              <td>- (u &middot; eye)</td>
+              <td>0</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td>v</td>
+              <td>- (v &middot; eye)</td>
+              <td>0</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td>0</td>
+              <td>0</td>
+              <td>0</td>
+              <td>1</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <h3>Perspective Matrix</h3>
+        w = right - left
+        h = top - bottom
+        d = far - near
+      </td>
+    </tr>
+    <tr>
+      <td>P =</td>
+      <td>
+        <table class="matrix">
+          <tbody>
+            <tr>
+              <td>2 / w</td>
+              <td>0</td>
+              <td>0</td>
+              <td>- (left +  right) / w</td>
+            </tr>
+            <tr>
+              <td>0</td>
+              <td>2 / h</td>
+              <td>0</td>
+              <td>- (top +  bottom) / h</td>
+            </tr>
+            <tr>
+              <td>0</td>
+              <td>0</td>
+              <td>- 2 / d</td>
+              <td>- (near +  far) / d</td>
+            </tr>
+            <tr>
+              <td>0</td>
+              <td>0</td>
+              <td>0</td>
+              <td>1</td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <h3>One-point perspective cube</h3>
+        degrees<span style="vertical-align:sub;">t</span> = 0
+        degrees<span style="vertical-align:sub;">p</span> = 0
+        far = - near = 10
+        top = - bottom = 3
+        right = 3 + 2 = 5
+        left = - 3 + 2 = 1
+
+        CTM<span style="vertical-align:sub;">1</span> = P &times; MP
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <h3>Two-point perspective cube</h3>
+        degrees<span style="vertical-align:sub;">t</span> = 0
+        degrees<span style="vertical-align:sub;">p</span> = 45
+        far = - near = 10
+        top = - bottom = 3
+        right = 3 + 0 = 3
+        left = - 3 + 0 = -3
+
+        CTM<span style="vertical-align:sub;">2</span> = P &times; MP
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <h3>Three-point perspective cube</h3>
+        degrees<span style="vertical-align:sub;">t</span> = 45
+        degrees<span style="vertical-align:sub;">p</span> = 45
+        far = - near = 10
+        top = - bottom = 3
+        right = 3 - 2 = 1
+        left = - 3 - 2 = -5
+
+        CTM<span style="vertical-align:sub;">3</span> = P &times; MP
+      </td>
+    </tr>
+  </tbody>
+</table>
+      </code>
+    </pre>
+  </div>
+</div>
+
+<div id='part_4'>
+  <h2>Part 4</h2>
   <canvas id="canvas" width="500" height="500"></canvas>
 </div>

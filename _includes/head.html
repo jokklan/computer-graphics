@@ -12,6 +12,11 @@
   <link rel="stylesheet" href="{{ "/stylesheets/main.css" | prepend: site.baseurl }}">
   <link rel="stylesheet" href="{{ "/stylesheets/github-light.css" | prepend: site.baseurl }}">
 
+  {% if page.custom_css %}
+    {% for css_file in page.custom_css %}
+      <link rel="stylesheet" href="{{ site.baseurl }}/stylesheets/{{ css_file }}.css">
+    {% endfor %}
+  {% endif %}
 
   <script type="text/javascript" src="{{ "/javascripts/webgl-utils.js" | prepend: site.baseurl }}"></script>
   <script type="text/javascript" src="{{ "/javascripts/initShaders.js" | prepend: site.baseurl }}"></script>
@@ -21,7 +26,7 @@
 
   {% if page.custom_js %}
     {% for js_file in page.custom_js %}
-    <script src='{{ site.baseurl }}/javascripts/{{ js_file }}.js' type="text/javascript"></script>
+      <script src="{{ site.baseurl }}/javascripts/{{ js_file }}.js" type="text/javascript"></script>
     {% endfor %}
   {% endif %}
 

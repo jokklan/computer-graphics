@@ -11,17 +11,45 @@ class Canvas
     [ 1.0, 1.0, 1.0, 1.0 ],  # white
     [ 0.0, 1.0, 1.0, 1.0 ]   # cyan
   ]
+
+  vertices: [
+    vec4(-0.5, -0.5, 0.5,  1.0),
+    vec4(-0.5, 0.5,  0.5,  1.0),
+    vec4(0.5,  0.5,  0.5,  1.0),
+    vec4(0.5,  -0.5, 0.5,  1.0),
+    vec4(-0.5, -0.5, -0.5, 1.0),
+    vec4(-0.5, 0.5,  -0.5, 1.0),
+    vec4(0.5,  0.5,  -0.5, 1.0),
+    vec4(0.5,  -0.5, -0.5, 1.0)
+  ]
+
   constructor: (selector)->
     # Part 1
     @container = document.getElementById(selector)
     @gl = @setupCanvas(selector)
     @canvas = @gl.canvas
-    @gl.enable(@gl.DEPTH_TEST)
     @points = []
     @colors = []
 
     @setBackground()
-    @render()
+    @gl.enable(@gl.DEPTH_TEST)
+    @setup()
+
+  setup: ->
+
+  drawCube: ->
+    @quad(1, 0, 3, 2)
+    @quad(2, 3, 7, 6)
+    @quad(3, 0, 4, 7)
+    @quad(6, 5, 1, 2)
+    @quad(4, 5, 6, 7)
+    @quad(5, 4, 0, 1)
+
+  quad: (a, b, c, d) ->
+    indices = [ a, b, c, a, c, d ]
+    for index in indices
+      @points.push(@vertices[index])
+      @colors.push(@vertexColors[index])
 
   setupCanvas: ->
     canvas = @container.getElementsByTagName('canvas')[0]
@@ -46,51 +74,112 @@ class Canvas
     @gl.useProgram(program)
     program
 
-  render: () ->
+  render: (numOfVertices, offset = 0) ->
 
-    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT)
-    # @gl.clear(@gl.COLOR_BUFFER_BIT)
-    @gl.drawArrays(@gl.LINES, 0, @points.length)
+    @gl.drawArrays(@gl.LINE_LOOP, offset, numOfVertices)
 
 class Part1Canvas extends Canvas
-  vertices: [
-    vec4(-0.5, -0.5,  0.5, 1.0),
-    vec4(-0.5,  0.5,  0.5, 1.0),
-    vec4(0.5,  0.5,  0.5, 1.0),
-    vec4(0.5, -0.5,  0.5, 1.0),
-    vec4(-0.5, -0.5, -0.5, 1.0),
-    vec4(-0.5,  0.5, -0.5, 1.0),
-    vec4(0.5,  0.5, -0.5, 1.0),
-    vec4(0.5, -0.5, -0.5, 1.0)
-  ]
   constructor: (selector = 'part_1')->
     super(selector)
-    @program = @loadShaders('vertex-shader-color')
 
-    @quad(1, 0, 3, 2)
-    @quad(2, 3, 7, 6)
-    @quad(3, 0, 4, 7)
-    @quad(6, 5, 1, 2)
-    @quad(4, 5, 6, 7)
-    @quad(5, 4, 0, 1)
+  setup: ->
+    @drawCube()
+    @program = @loadShaders('vertex-shader-orthographic')
+
+    @modelViewMatrixLoc = @gl.getUniformLocation(@program, "modelViewMatrix")
 
     @vBuffer = @createBuffer(flatten(@points))
     @writeData('vPosition', 4)
     @cBuffer = @createBuffer(flatten(@colors))
     @writeData('vColor', 4)
 
-    @render()
+    @setModelViewMatrix(0.1, 0, 0)
+
+    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT)
+    @render(36)
+
+  setModelViewMatrix:(radius, theta, phi) ->
+    theta  = theta * Math.PI/180.0
+    phi    = phi * Math.PI/180.0
+
+    at = vec3(0.0, 0.0, 0.0)
+    up = vec3(0.0, 1.0, 0.0)
+    eye = vec3(radius*Math.sin(phi), radius*Math.sin(theta), radius*Math.cos(phi))
+
+    modelViewMatrix = lookAt(eye, at , up)
+    console.log(eye)
+    console.log(at)
+    console.log(up)
+    console.log(modelViewMatrix)
+
+    @gl.uniformMatrix4fv(@modelViewMatrixLoc, false, flatten(modelViewMatrix))
 
 
-  quad: (a, b, c, d) ->
-    indices = [ a, b, c, a, c, d ]
-    for index in indices
-      @points.push(@vertices[index])
-      @colors.push(@vertexColors[index])
+class Part2Canvas extends Part1Canvas
+  constructor: (selector = 'part_2')->
+    super(selector)
+
+  setup: ->
+    @drawCube()
+
+    @program = @loadShaders('vertex-shader-isometric')
+
+    @modelViewMatrixLoc = @gl.getUniformLocation(@program, "modelViewMatrix")
+    @projectionMatrixLoc = @gl.getUniformLocation(@program, "projectionMatrix")
+
+    @vBuffer = @createBuffer(flatten(@points))
+    @writeData('vPosition', 4)
+    @cBuffer = @createBuffer(flatten(@colors))
+    @writeData('vColor', 4)
+
+    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT)
+
+    @setModelViewMatrix(0.1, 0, 0)
+    transformation = mat4(
+      vec4(1, 0, 0, 1),
+      vec4(0, 1, 0, 1),
+      vec4(0, 0, 1, 1),
+      vec4(0, 0, 0, 1)
+    )
+    @setPerspective(10, 3, 2)
+    @render(36, 36*0)
+
+    @setModelViewMatrix(0.1, 0, 45)
+    @setPerspective(10, 3, 0)
+    @render(36, 36*0)
+
+    @setModelViewMatrix(0.1, 45, 45)
+    @setPerspective(10, 3, -2)
+    @render(36, 36*0)
+
+
+
+  setPerspective:(depth, size = 1, xOffset = 0, yOffset = 0) ->
+    near = -depth
+    far = depth
+    left = -size + xOffset
+    right = size + xOffset
+    ytop = size + yOffset
+    bottom = -size + yOffset
+
+    projectionMatrix = ortho(left, right, bottom, ytop, near, far)
+
+    @gl.uniformMatrix4fv(@projectionMatrixLoc, false, flatten(projectionMatrix))
+
+class Part4Canvas extends Part2Canvas
+  constructor: (selector = 'part_4')->
+    super(selector)
+
+# Part 3
+## Part 1
+
+
+
+## Part 2
+
+
 
 window.onload = ->
   new Part1Canvas()
-
-
-
-
+  new Part2Canvas()
+  # new Part4Canvas()
