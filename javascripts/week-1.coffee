@@ -58,7 +58,7 @@ class Part2Canvas extends Canvas
     @gl.enableVertexAttribArray(vAttribute)
 
   loadShaders: ->
-    program = initShaders(@gl, "/shaders/vshader-#{@shader_version}.glsl", "/shaders/fshader.glsl")
+    program = initShaders(@gl, "#{window.baseurl}/shaders/vshader-#{@shader_version}.glsl", "#{window.baseurl}/shaders/fshader.glsl")
     @gl.useProgram(program)
     program
 
