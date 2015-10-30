@@ -51,8 +51,8 @@ class Canvas
     @gl.vertexAttribPointer(vAttribute, pointerSize, @gl.FLOAT, false, 0, 0)
     @gl.enableVertexAttribArray(vAttribute)
 
-  loadShaders: (shader) ->
-    program = initShaders(@gl, shader, "fragment-shader")
+  loadShaders: ->
+    program = initShaders(@gl, "/shaders/vshader-#{@program_version}.glsl", "/shaders/fshader.glsl")
     @gl.useProgram(program)
     program
 
@@ -68,9 +68,10 @@ class Canvas
     @gl.drawArrays(@gl.POINTS, 0, @index)
 
 class Part1Canvas extends Canvas
+  program_version: '2-1'
   constructor: (selector = 'part_1')->
     super(selector)
-    @program = @loadShaders('vertex-shader')
+    @program = @loadShaders()
     @vBuffer = @createBuffer(sizeof['vec2'] * @maxPoints)
     @writeData('vPosition', 2)
     @setupClickEvent()
@@ -87,6 +88,7 @@ class Part1Canvas extends Canvas
       @render()
 
 class Part2Canvas extends Part1Canvas
+  program_version: '2-2'
   constructor: (selector = 'part_2')->
     super(selector)
     @colorIndex = 0
@@ -101,7 +103,7 @@ class Part2Canvas extends Part1Canvas
       vec4(0.0, 1.0, 1.0, 1.0)  # cyan
     ]
 
-    @program = @loadShaders('vertex-shader-color')
+    @program = @loadShaders()
     @cBuffer = @createBuffer(sizeof['vec4'] * @maxPoints)
     @writeData('vColor', 4)
 
@@ -270,6 +272,7 @@ class Part4Canvas extends Part3Canvas
   render: () ->
     super()
 
+    console.log @sphereIndices
     for i in @sphereIndices
       @gl.drawArrays(@gl.TRIANGLE_FAN, i, 65)
 

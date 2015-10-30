@@ -1,135 +1,152 @@
 ---
 ---
-window.onload = ->
-  # Part 1
-  gl = setupCanvas('part_1')
+class Canvas
+  constructor: (selector)->
+    @container = document.getElementById(selector)
+    @gl = @setupCanvas(selector)
+    @canvas = @gl.canvas
 
-  pointsTriangle = [
+    @setBackground()
+    @setup()
+    @render()
+
+  setup: ->
+
+  setupCanvas: ->
+    canvas = @container.getElementsByTagName('canvas')[0]
+    WebGLUtils.setupWebGL(canvas)
+
+  setBackground: ->
+    @gl.clearColor(0.3921, 0.5843, 0.9294, 1.0)
+
+  render:->
+    @clear()
+
+  clear: ->
+    @gl.clear(@gl.COLOR_BUFFER_BIT)
+
+class Part1Canvas extends Canvas
+  constructor: (selector = 'part_1')->
+    super(selector)
+
+
+class Part2Canvas extends Canvas
+  shader_version: '1-2'
+  points: [
     vec2(1, 1),
     vec2(1, 0),
     vec2(0, 0)
   ]
 
-  setBackground(gl)
-  render(gl, pointsTriangle)
+  constructor: (selector = 'part_2')->
+    super(selector)
 
-  # Part 2
-  gl = setupCanvas('part_2')
+  setup: ->
+    @program = @loadShaders()
+    @vBuffer = @createBuffer(flatten(@points))
+    @writeData('vPosition', 2)
 
-  setBackground(gl)
-  program = loadShaders(gl, 'vertex-shader')
-  createBuffer(gl, pointsTriangle)
-  writeData(gl, 'vPosition', program, 2)
+  createBuffer: (data) ->
+    buffer = @gl.createBuffer()
+    @gl.bindBuffer(@gl.ARRAY_BUFFER, buffer)
+    @gl.bufferData(@gl.ARRAY_BUFFER, data, @gl.STATIC_DRAW)
+    buffer
 
-  renderPoints(gl, pointsTriangle)
+  writeData: (attribute, pointerSize) ->
+    vAttribute = @gl.getAttribLocation(@program, attribute)
+    @gl.vertexAttribPointer(vAttribute, pointerSize, @gl.FLOAT, false, 0, 0)
+    @gl.enableVertexAttribArray(vAttribute)
 
-  # Part 3
-  gl = setupCanvas('part_3')
-  colors = [
+  loadShaders: ->
+    program = initShaders(@gl, "/shaders/vshader-#{@shader_version}.glsl", "/shaders/fshader.glsl")
+    @gl.useProgram(program)
+    program
+
+  render: ->
+    super()
+    @draw()
+
+  draw: ->
+    @gl.drawArrays(@gl.POINTS, 0, @points.length)
+
+
+class Part3Canvas extends Part2Canvas
+  shader_version: '1-3'
+  colors: [
     vec3(1.0, 0.0, 0.0),
     vec3(0.0, 1.0, 0.0),
     vec3(0.0, 0.0, 1.0)
   ]
 
-  setBackground(gl)
-  program = loadShaders(gl, 'vertex-shader-color')
-  createBuffer(gl, pointsTriangle)
-  writeData(gl, 'vPosition', program, 2)
-  createBuffer(gl, colors)
-  writeData(gl, 'vColor', program, 3)
+  constructor: (selector = 'part_3')->
+    super(selector)
 
-  renderTriangles(gl, pointsTriangle)
+  setup: ->
+    super()
 
-  # Part 4
-  gl = setupCanvas('part_4')
+    @vBuffer = @createBuffer(flatten(@colors))
+    @writeData('vColor', 3)
 
-  pointsSquare = [
+  draw: ->
+    @gl.drawArrays(@gl.TRIANGLE_STRIP, 0, @points.length)
+
+class Part4Canvas extends Part3Canvas
+  shader_version: '1-4'
+  points: [
     [0, 0.5],
     [0.5, 0],
     [-0.5, 0],
     [0, -0.5]
   ]
+  speed: 0.1
+  theta: 0.0
 
-  setBackground(gl)
-  program = loadShaders(gl, 'vertex-shader-square')
-  createBuffer(gl, pointsSquare)
-  writeData(gl, 'vPosition', program, 2)
-  thetaLoc = gl.getUniformLocation(program, "theta")
+  constructor: (selector = 'part_4')->
+    super(selector)
 
-  renderAnimation(gl, pointsSquare, 0.0, thetaLoc)
+  setup: ->
+    super()
+    @thetaLoc = @gl.getUniformLocation(@program, "theta")
 
-  # Part 5
-  gl = setupCanvas('part_5');
+  render: ->
+    super()
 
-  pointsCircle = [
+    requestAnimFrame =>
+      @render()
+
+  draw: ->
+    @theta -= @speed
+    @gl.uniform1f(@thetaLoc, @theta)
+    @gl.drawArrays(@gl.TRIANGLE_STRIP, 0, @points.length)
+
+class Part5Canvas extends Part4Canvas
+  shader_version: '1-5'
+  points: [
     [0.0, 0.0]
   ]
 
-  radius = 0.5
-  step = 0.1
+  constructor: (selector = 'part_5')->
+    super(selector)
 
-  for i in [0..2*Math.PI + step] by step
-    pointsCircle.push [Math.cos(i) * radius, Math.sin(i) * radius]
+  setup: ->
+    @drawCircle(0.5)
+    super()
 
-  setBackground(gl)
-  program = loadShaders(gl, 'vertex-shader-circle')
-  createBuffer(gl, pointsCircle)
-  writeData(gl, 'vPosition', program, 2)
-  thetaLoc = gl.getUniformLocation(program, "theta")
+  drawCircle: (radius, step = 0.1)->
+    for i in [0..2*Math.PI + step] by step
+      @points.push [Math.cos(i) * radius, Math.sin(i) * radius]
 
-  renderCirlce(gl, pointsCircle, 0.0, thetaLoc)
+  draw: ->
+    @theta -= @speed
+    @gl.uniform1f(@thetaLoc, @theta)
+    @gl.drawArrays(@gl.TRIANGLE_FAN, 0, @points.length)
 
+window.onload = ->
+  new Part1Canvas()
+  new Part2Canvas()
+  new Part3Canvas()
+  new Part4Canvas()
+  new Part5Canvas()
 
-setupCanvas = (id) ->
-  canvas = document.getElementById(id)
-  WebGLUtils.setupWebGL(canvas)
-
-
-setBackground = (gl) ->
-  gl.clearColor(0.3921, 0.5843, 0.9294, 1.0)
-
-createBuffer = (gl, data) ->
-  buffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-  gl.bufferData(gl.ARRAY_BUFFER, flatten(data), gl.STATIC_DRAW)
-
-writeData = (gl, attribute, program, pointerSize) ->
-  vAttribute = gl.getAttribLocation(program, attribute)
-  gl.vertexAttribPointer(vAttribute, pointerSize, gl.FLOAT, false, 0, 0)
-  gl.enableVertexAttribArray(vAttribute)
-
-loadShaders = (gl, shader) ->
-  program = initShaders(gl, shader, "fragment-shader")
-  gl.useProgram(program)
-  program
-
-render = (gl) ->
-  gl.clear(gl.COLOR_BUFFER_BIT)
-
-renderPoints = (gl, points) ->
-  gl.clear(gl.COLOR_BUFFER_BIT)
-  gl.drawArrays(gl.POINTS, 0, points.length)
-
-renderTriangles = (gl, points) ->
-  gl.clear(gl.COLOR_BUFFER_BIT)
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, points.length)
-
-renderAnimation = (gl, points, theta, thetaLoc) ->
-  gl.clear(gl.COLOR_BUFFER_BIT)
-  theta -= 0.1
-  gl.uniform1f(thetaLoc, theta)
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, points.length)
-
-  requestAnimFrame ->
-    renderAnimation(gl, points, theta, thetaLoc)
-
-renderCirlce = (gl, points, theta, thetaLoc) ->
-  gl.clear(gl.COLOR_BUFFER_BIT)
-  theta -= 0.1
-  gl.uniform1f(thetaLoc, theta)
-  gl.drawArrays(gl.TRIANGLE_FAN, 0, points.length)
-
-  requestAnimFrame ->
-    renderCirlce(gl, points, theta, thetaLoc)
 
 

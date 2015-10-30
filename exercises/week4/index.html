@@ -1,0 +1,142 @@
+---
+layout: page
+title:  "Week 4"
+category: exercises
+custom_js:
+- week-4
+custom_css:
+- questions
+---
+<div id='part_1'>
+  <h2>Part 1</h2>
+  <div><button class='increase_button' value='increase'>increase</button></div>
+  <div><button class='decrease_button' value='decrease'>decrease</button></div>
+  <div class="subdivision_value"></div>
+  <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+
+<div id='part_2'>
+  <h2>Part 2</h2>
+  <div><button class='increase_button' value='increase'>increase</button></div>
+  <div><button class='decrease_button' value='decrease'>decrease</button></div>
+  <div class="subdivision_value"></div>
+  <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+
+<div id='part_3'>
+  <h2>Part 3</h2>
+  <div><button class='increase_button' value='increase'>increase</button></div>
+  <div><button class='decrease_button' value='decrease'>decrease</button></div>
+  <div class="subdivision_value"></div>
+  <canvas id="canvas" width="500" height="500"></canvas>
+</div>
+
+<div id='part_4'>
+  <h2>Part 4</h2>
+  <div><button class='increase_button' value='increase'>increase</button></div>
+  <div><button class='decrease_button' value='decrease'>decrease</button></div>
+  <div>materialAmbient: <input class="materialAmbient_slider" type="range" min="0.0" max="1.0" step="0.1" value="0.5" /></div>
+  <div>materialDiffuse: <input class="materialDiffuse_slider" type="range" min="0.0" max="1.0" step="0.1" value="0.5" /></div>
+  <div>materialSpecular: <input class="materialSpecular_slider" type="range" min="0.0" max="1.0" step="0.1" value="0.5" /></div>
+  <div>materialShininess: <input class="materialShininess_slider" type="range" min="0" max="200" step="1" value="100" /></div>
+  <div>lightAmbient: <input class="lightAmbient_slider" type="range" min="0.0" max="1.0" step="0.1" value="1.0" /></div>
+  <div>lightDiffuse: <input class="lightDiffuse_slider" type="range" min="0.0" max="1.0" step="0.1" value="1.0" /></div>
+  <div>lightSpecular: <input class="lightSpecular_slider" type="range" min="0.0" max="1.0" step="0.1" value="1.0" /></div>
+
+  <div class="subdivision_value"></div>
+  <h3>Camera moving:</h3>
+  <canvas class="canvas-dynamic-light" width="500" height="500"></canvas>
+  <h3>Sphere moving:</h3>
+  <canvas class="canvas-static-light" width="500" height="500"></canvas>
+</div>
+
+<div id='part_5'>
+  <h2>Part 5</h2>
+  <div><button class='increase_button' value='increase'>increase</button></div>
+  <div><button class='decrease_button' value='decrease'>decrease</button></div>
+  <div>materialAmbient: <input class="materialAmbient_slider" type="range" min="0.0" max="1.0" step="0.1" value="0.5" /></div>
+  <div>materialDiffuse: <input class="materialDiffuse_slider" type="range" min="0.0" max="1.0" step="0.1" value="0.5" /></div>
+  <div>materialSpecular: <input class="materialSpecular_slider" type="range" min="0.0" max="1.0" step="0.1" value="0.5" /></div>
+  <div>materialShininess: <input class="materialShininess_slider" type="range" min="0" max="200" step="1" value="100" /></div>
+  <div>lightAmbient: <input class="lightAmbient_slider" type="range" min="0.0" max="1.0" step="0.1" value="1.0" /></div>
+  <div>lightDiffuse: <input class="lightDiffuse_slider" type="range" min="0.0" max="1.0" step="0.1" value="1.0" /></div>
+  <div>lightSpecular: <input class="lightSpecular_slider" type="range" min="0.0" max="1.0" step="0.1" value="1.0" /></div>
+
+  <div class="subdivision_value"></div>
+  <h3>Camera moving:</h3>
+  <canvas class="canvas-dynamic-light" width="500" height="500"></canvas>
+  <h3>Sphere moving:</h3>
+  <canvas class="canvas-static-light" width="500" height="500"></canvas>
+</div>
+
+<div id='part_6'>
+  <h2>Part 6</h2>
+  <ol type="a">
+    <li>
+      <p class="question">What is the difference between Phong shading and Phong lighting (the Phong reflection model)?</p>
+      <p class="answer">
+        The Phong lighting (or Phong reflection model) is a reflection calculation model that is used as part of the Phong shading model. The lighting model designates the interaction between materials and light sources.
+
+        The shading model is a
+        The Phong shading model is
+
+
+        The differences between Phong Lighting and Phong Shading model is that lighting model designates the interaction between materials and light sources, while the shading model is the process of determining the color of a pixel, usually determined by the lighting.
+      </p>
+    </li>
+
+    <li>
+      <p class="question">What is the difference between flat shading, Gouraud shading, and Phong shading? List pros and cons of each.</p>
+      <p class="answer">
+        <dl>
+          <dt>Flat shading:</dt>
+          <dd>
+            Flat shading colors all vertices in a polygon (triangle) and thereby the whole polygon surface in the same color, which is based on the angle between the polygon's surface normal and the direction of the light source. Flat shading can give adjacent polygons different colors which can higlight the lines between them, but is very fast compared to the smooth shading models.
+          </dd>
+          <dt>Gouraud shading:</dt>
+          <dd>
+            Gouraud shading calculates the color of each point in each triangle by averaging the surface normals of each polygon that meets in that vertic. Gouraud shading is thereby superior to flat shading, as it will smooth the transitions of shading color from one polygon to the next, and not higlight the lines between them. However it is not good at showing highly localized shading lighting like (such as specular lighting). Especially if the highlight lies in the center of a polygon and don't spread to the vertices, will it not be rendered with gouraud shading.
+          </dd>
+          <dt>Phong shading:</dt>
+          <dd>
+            The Phong shading model uses a interpolation technic to calculate normal vectors across the surface of a polygon, from the polygon's surface vector. The surface normal is interpolated and normalized at each pixel and then used in a reflection model (like the Phong reflection model). Phong reflection provides a better approximation of the shading of a smooth surface then the Gouraud shading model, and is especially superior when there is higlight in the middle of larger polygons. However the Phong shading model is also computational much harder because the color of each pixel has to be calculated.
+          </dd>
+        </dl>
+      </p>
+    </li>
+
+    <li>
+      <p class="question">What is the difference between a directional light and a point light?</p>
+      <p class="answer">
+        The differnce between Point light and Directional lights, is that Point lights have color and position within a scene, but no direction and the Directional lights have color and direction, but no position.
+        Point lights give off light equally in all directions while directional light emit parallel light, which means that all light generated by directional lights travels through a scene in the same direction.
+      </p>
+    </li>
+
+    <li>
+      <p class="question">Does the eye position influence the shading of an object in any way?</p>
+      <p class="answer">
+        If the Phong reflection model is used, will changes to the eye position also change the reflection vector and thereby the highlight.
+      </p>
+    </li>
+
+    <li>
+      <p class="question">What is the effect of setting the specular term to (0, 0, 0)?</p>
+      <p class="answer">
+      Setting the specular term to (0, 0, 0) (which is black), is effectively the same as removing the specular term, and thereby the specular highlight on the object.
+      </p>
+    </li>
+
+    <li>
+      <p class="question">What is the effect of increasing the shininess exponent (&alpha;)?</p>
+      <p class="answer">The shininess exponentially increases the specular lighting, and thereby gives a stronger highlight.</p>
+    </li>
+
+    <li>
+      <p class="question">In what coordinate space did you compute the lighting?</p>
+      <p class="answer">
+        We computed the lighting in the eye coordinate space.
+      </p>
+    </li>
+  </ol>
+</div>

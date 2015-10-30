@@ -69,8 +69,8 @@ class Canvas
     @gl.vertexAttribPointer(vAttribute, pointerSize, @gl.FLOAT, false, 0, 0)
     @gl.enableVertexAttribArray(vAttribute)
 
-  loadShaders: (shader) ->
-    program = initShaders(@gl, shader, "fragment-shader")
+  loadShaders: ->
+    program = initShaders(@gl, "/shaders/vshader-#{@shader_version}.glsl", "/shaders/fshader.glsl")
     @gl.useProgram(program)
     program
 
@@ -79,12 +79,13 @@ class Canvas
     @gl.drawArrays(@gl.LINE_LOOP, offset, numOfVertices)
 
 class Part1Canvas extends Canvas
+  shader_version: '3-1'
   constructor: (selector = 'part_1')->
     super(selector)
 
   setup: ->
     @drawCube()
-    @program = @loadShaders('vertex-shader-orthographic')
+    @program = @loadShaders()
 
     @modelViewMatrixLoc = @gl.getUniformLocation(@program, "modelViewMatrix")
 
@@ -107,22 +108,19 @@ class Part1Canvas extends Canvas
     eye = vec3(radius*Math.sin(phi), radius*Math.sin(theta), radius*Math.cos(phi))
 
     modelViewMatrix = lookAt(eye, at , up)
-    console.log(eye)
-    console.log(at)
-    console.log(up)
-    console.log(modelViewMatrix)
 
     @gl.uniformMatrix4fv(@modelViewMatrixLoc, false, flatten(modelViewMatrix))
 
 
 class Part2Canvas extends Part1Canvas
+  shader_version: '3-2'
   constructor: (selector = 'part_2')->
     super(selector)
 
   setup: ->
     @drawCube()
 
-    @program = @loadShaders('vertex-shader-isometric')
+    @program = @loadShaders()
 
     @modelViewMatrixLoc = @gl.getUniformLocation(@program, "modelViewMatrix")
     @projectionMatrixLoc = @gl.getUniformLocation(@program, "projectionMatrix")
@@ -135,24 +133,16 @@ class Part2Canvas extends Part1Canvas
     @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT)
 
     @setModelViewMatrix(0.1, 0, 0)
-    transformation = mat4(
-      vec4(1, 0, 0, 1),
-      vec4(0, 1, 0, 1),
-      vec4(0, 0, 1, 1),
-      vec4(0, 0, 0, 1)
-    )
     @setPerspective(10, 3, 2)
-    @render(36, 36*0)
+    @render(36)
 
     @setModelViewMatrix(0.1, 0, 45)
     @setPerspective(10, 3, 0)
-    @render(36, 36*0)
+    @render(36)
 
     @setModelViewMatrix(0.1, 45, 45)
     @setPerspective(10, 3, -2)
-    @render(36, 36*0)
-
-
+    @render(36)
 
   setPerspective:(depth, size = 1, xOffset = 0, yOffset = 0) ->
     near = -depth

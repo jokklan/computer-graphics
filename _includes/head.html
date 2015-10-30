@@ -19,10 +19,8 @@
   {% endif %}
 
   <script type="text/javascript" src="{{ "/javascripts/webgl-utils.js" | prepend: site.baseurl }}"></script>
-  <script type="text/javascript" src="{{ "/javascripts/initShaders.js" | prepend: site.baseurl }}"></script>
+  <script type="text/javascript" src="{{ "/javascripts/initShaders2.js" | prepend: site.baseurl }}"></script>
   <script type="text/javascript" src="{{ "/javascripts/MV.js" | prepend: site.baseurl }}"></script>
-
-  {% include scripts.html %}
 
   {% if page.custom_js %}
     {% for js_file in page.custom_js %}
