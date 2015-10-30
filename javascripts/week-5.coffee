@@ -99,7 +99,7 @@ class Part3Canvas extends Canvas
     @model = @initVertexBuffers()
 
     # Start reading the OBJ file
-    @readOBJFile('/resources/teapot.obj', 0.3, true)
+    @readOBJFile("#{window.baseurl}/resources/teapot.obj", 0.3, true)
 
     @modelViewMatrixLoc = @gl.getUniformLocation(@program, "modelViewMatrix")
     @projectionMatrixLoc = @gl.getUniformLocation(@program, "projectionMatrix")

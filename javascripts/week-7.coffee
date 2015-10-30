@@ -140,7 +140,7 @@ class Part1Canvas extends Canvas
     image.onload = =>
       @textureImage = @configureTextureImage(image, 0)
 
-    image.src = "/resources/xamp23.png"
+    image.src = "#{window.baseurl}/resources/xamp23.png"
 
     redTexture = new Uint8Array(4)
     redTexture[0] = 255

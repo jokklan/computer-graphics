@@ -285,7 +285,7 @@ class Part3Canvas extends Canvas
     image.onload = =>
         @configureTexture(image)
 
-    image.src = "/resources/earth.jpg"
+    image.src = "#{window.baseurl}/resources/earth.jpg"
 
 
   configureTexture: (image)->
