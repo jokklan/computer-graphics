@@ -4,7 +4,7 @@ class Canvas
   constructor: (selector)->
     # Part 1
     @container = document.getElementById(selector)
-    @gl = @setupCanvas(selector)
+    @gl = @setupCanvas(selector, { alpha: false })
     @canvas = @gl.canvas
     @reset()
 
@@ -54,13 +54,14 @@ class Canvas
 
 
   setModelViewMatrix:() ->
-    at = vec3(0.0, 0.0, 0.0)
+    at = vec3(0.0, 0.0, -1.0)
     up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(0.0, 0.0, 1.0)
+    eye = vec3(0.0, 1.0, 0.0)
 
     modelViewMatrix = lookAt(eye, at, up);
 
     @gl.uniformMatrix4fv(@modelViewMatrixLoc, false, flatten(modelViewMatrix) )
+    modelViewMatrix
 
   setPerspective:(fovy = 90, aspect = 1.0, near = 0.3, far = 10) ->
     projectionMatrix = perspective(fovy, aspect, near, far)
@@ -120,8 +121,7 @@ class Part1Canvas extends Canvas
     @quad(4, 5, 6, 7)
     @quad(8, 9, 10, 11)
 
-
-    @lightPosition = vec4(2.0, 2.0, -2.0, 0.0 )
+    @lightPosition = vec4(0.0, 2.0, -2.0, 0.0)
 
     @vBuffer = @createBuffer(flatten(@colors))
     @writeData('vColor', 4)
@@ -154,14 +154,14 @@ class Part1Canvas extends Canvas
     blackTexture[1] = 0
     blackTexture[2] = 0
     blackTexture[3] = 255
-    @textureArray2 = @configureTextureArray(2, blackTexture, 2)
+    @textureArray2 = @configureTextureArray(1, blackTexture, 2)
 
   configureTextureImage: (image, textureIndex = 0)->
     @gl.activeTexture(@gl["TEXTURE#{textureIndex}"]);
     texture = @gl.createTexture()
     @gl.bindTexture(@gl.TEXTURE_2D, texture)
     @gl.texImage2D(@gl.TEXTURE_2D, 0, @gl.RGB, @gl.RGB, @gl.UNSIGNED_BYTE, image)
-    @gl.generateMipmap(@gl.TEXTURE_2D)
+    # @gl.generateMipmap(@gl.TEXTURE_2D)
     @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.NEAREST)
     @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MAG_FILTER, @gl.NEAREST)
     return texture;
@@ -171,13 +171,13 @@ class Part1Canvas extends Canvas
     texture = @gl.createTexture()
     @gl.bindTexture(@gl.TEXTURE_2D, texture)
     @gl.texImage2D(@gl.TEXTURE_2D, 0, @gl.RGBA, texSize, texSize, 0, @gl.RGBA, @gl.UNSIGNED_BYTE, image)
-    @gl.generateMipmap(@gl.TEXTURE_2D)
+    # @gl.generateMipmap(@gl.TEXTURE_2D)
     @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_WRAP_S, @gl.REPEAT)
     @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.NEAREST)
     @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MAG_FILTER, @gl.NEAREST)
     return texture;
 
-  writeTexture: (texture, index)->
+  writeTexture: (index)->
     @gl.uniform1i(@gl.getUniformLocation(@program, "texMap"), index)
 
 
@@ -195,10 +195,10 @@ class Part1Canvas extends Canvas
     @gl.clear(@gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT) # Clear color and depth buffers
 
     # Draw
-    @writeTexture(@textureImage, 0)
+    @writeTexture(0)
     @gl.drawArrays(@gl.TRIANGLES, 0, 6)
 
-    @writeTexture(@textureArray, 1)
+    @writeTexture(1)
     @gl.drawArrays(@gl.TRIANGLES, 6, 6)
     @gl.drawArrays(@gl.TRIANGLES, 12, 6)
 
@@ -212,51 +212,123 @@ class Part2Canvas extends Part1Canvas
   constructor: (selector = 'part_2')->
     super(selector)
 
-  draw: ->
-    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT)
+  setup: ->
+    super()
+    @shadowProjection = mat4()
+    @shadowProjection[3][3] = 0.0
+
+  updateTimer: ->
     @theta += @speed
 
     if @theta > 2 * Math.PI
       @theta -= 2 * Math.PI
 
-    at = vec3(0.0, 0.0, -1.0)
-    up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(0.0, 1.0, 0.0)
+  resetDrawingPerspective: ->
+    @setModelViewMatrix()
 
-
-    modelViewMatrix = lookAt(eye, at, up)
-
-    @gl.uniformMatrix4fv(@modelViewMatrixLoc, false, flatten(modelViewMatrix))
-
-    @writeTexture(@textureImage, 0)
+  drawBoard: ->
+    @writeTexture(0)
     @gl.drawArrays(@gl.TRIANGLES, 0, 6)
 
-    @writeTexture(@textureArray, 1)
+  drawObjects: ->
+    @writeTexture(1)
     @gl.drawArrays(@gl.TRIANGLES, 6, 6)
     @gl.drawArrays(@gl.TRIANGLES, 12, 6)
 
+  drawShadows: (modelViewMatrix, offset = 0.0001)->
     # Rotate light source
-    @lightPosition = vec4(0.0, 2.0, -2.0, 0.0)
-    @lightPosition[0] = Math.sin(@theta) * 2.0
+    @lightPosition[0] = Math.sin(@theta) * 2.0 + 2.0
     @lightPosition[2] = Math.cos(@theta) * 2.0 - 2.0
 
-    m = mat4() # Shadow projection matrix initially an identity matrix
-    m[3][3] = 0.0
-    m[3][1] = -1.0/@lightPosition[1]
+    # Rotate shadow
+    @shadowProjection[3][1] = -1.0/(@lightPosition[1] + 1.0 - offset)
 
-    # Model-view matrix for shadow then render
+    # Model-view matrix for shadow
     modelViewMatrix = mult(modelViewMatrix, translate(@lightPosition[0], @lightPosition[1], @lightPosition[2]))
-    modelViewMatrix = mult(modelViewMatrix, m)
+    modelViewMatrix = mult(modelViewMatrix, @shadowProjection)
     modelViewMatrix = mult(modelViewMatrix, translate(-@lightPosition[0], -@lightPosition[1], -@lightPosition[2]))
-    # modelViewMatrix = mult(modelViewMatrix, translate(0, -1.0, 0))
 
-    # Send matrix for shadow
     @gl.uniformMatrix4fv(@modelViewMatrixLoc, false, flatten(modelViewMatrix))
 
-    @writeTexture(@textureArray2, 2)
+    # Draw shadows
+    @writeTexture(2)
     @gl.drawArrays(@gl.TRIANGLES, 6, 6)
     @gl.drawArrays(@gl.TRIANGLES, 12, 6)
+
+  draw: ->
+    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT)
+    @updateTimer()
+
+    modelViewMatrix = @resetDrawingPerspective()
+    @drawBoard()
+    @drawObjects()
+    @drawShadows(modelViewMatrix)
+
+class Part3Canvas extends Part2Canvas
+  program_version: '7-3'
+  theta: 0.0
+  speed: 0.1
+
+  constructor: (selector = 'part_3')->
+    super(selector)
+
+  resetDrawingPerspective: ->
+    @gl.depthFunc(@gl.LESS)
+    super()
+
+  drawShadows: (modelViewMatrix)->
+    @gl.depthFunc(@gl.GREATER)
+    super(modelViewMatrix, -0.0001)
+
+  draw: ->
+    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT)
+    @updateTimer()
+
+    modelViewMatrix = @resetDrawingPerspective()
+    @drawBoard()
+    @drawShadows(modelViewMatrix)
+    @resetDrawingPerspective()
+    @drawObjects()
+
+class Part4Canvas extends Part3Canvas
+  program_version: '7-3'
+  theta: 0.0
+  speed: 0.1
+
+  constructor: (selector = 'part_4')->
+    super(selector)
+
+  setup: ->
+    super()
+
+    blackTexture = new Uint8Array(4)
+    blackTexture[0] = 0
+    blackTexture[1] = 0
+    blackTexture[2] = 0
+    blackTexture[3] = 200
+    @textureArray2 = @configureTextureArray(1, blackTexture, 2)
+
+  resetDrawingPerspective: ->
+    @gl.disable(@gl.BLEND)
+    super()
+
+  drawShadows: (modelViewMatrix)->
+    @gl.enable(@gl.BLEND)
+    @gl.blendFunc(@gl.SRC_ALPHA, @gl.ONE_MINUS_SRC_ALPHA)
+    super(modelViewMatrix, -0.0001)
+
+  draw: ->
+    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT)
+    @updateTimer()
+
+    modelViewMatrix = @resetDrawingPerspective()
+    @drawBoard()
+    @drawShadows(modelViewMatrix)
+    @resetDrawingPerspective()
+    @drawObjects()
 
 window.onload = ->
   new Part1Canvas()
   new Part2Canvas()
+  new Part3Canvas()
+  new Part4Canvas()

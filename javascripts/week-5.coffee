@@ -31,17 +31,6 @@ class Canvas
   setBackground: ->
     @gl.clearColor(0.3921, 0.5843, 0.9294, 1.0)
 
-  # createBuffer: (data) ->
-  #   buffer = @gl.createBuffer()
-  #   @gl.bindBuffer(@gl.ARRAY_BUFFER, buffer)
-  #   @gl.bufferData(@gl.ARRAY_BUFFER, data, @gl.STATIC_DRAW)
-  #   buffer
-
-  # writeData: (attribute, pointerSize) ->
-  #   vAttribute = @gl.getAttribLocation(@program, attribute)
-  #   @gl.vertexAttribPointer(vAttribute, pointerSize, @gl.FLOAT, false, 0, 0)
-  #   @gl.enableVertexAttribArray(vAttribute)
-
   loadShaders: ->
     program = initShaders(@gl, "#{window.baseurl}/shaders/vshader-#{@program_version}.glsl", "#{window.baseurl}/shaders/fshader-#{@program_version}.glsl")
     @gl.useProgram(program)
