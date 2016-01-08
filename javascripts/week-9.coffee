@@ -2,7 +2,7 @@
 ---
 class Canvas
   theta: 0.0
-  speed: 0.05
+  speed: 0.02
 
   constructor: (selector)->
     # Part 1
