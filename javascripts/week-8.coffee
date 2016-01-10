@@ -16,6 +16,7 @@ class Canvas
     # @program = @loadShaders()
 
     @gl.enable(@gl.DEPTH_TEST)
+    @gl.enable(@gl.CULL_FACE)
 
     @setup()
 
@@ -250,13 +251,13 @@ class Part1Canvas extends Canvas
     @shadowObject = new Object()
     @shadowObject.vertexBuffer = @createEmptyArrayBuffer(@shadowProgram.vPosition, 3, @gl.FLOAT)
     @shadowObject.indexBuffer = @gl.createBuffer()
+    @shadowObject.lightVertexBuffer = @createEmptyArrayBuffer(@shadowProgram.vPosition, 3, @gl.FLOAT)
 
     @gl.bindBuffer(@gl.ARRAY_BUFFER, null)
 
 
   setup: ->
-    @perspectiveMatrix = perspective(90.0, 1.0, 0.001, 15.0)
-    @lightPosition = vec4(0.0, 2.0, -2.0, 0.0)
+    @perspectiveMatrix = perspective(45.0, 1.0, 0.001, 15.0)
     @g_objDoc = null # The information of OBJ file
     @g_drawinglnfo = null # The information for drawing 3D model
 
@@ -289,7 +290,7 @@ class Part1Canvas extends Canvas
     image = new Image()
     image.crossOrigin = 'anonymous'
     image.onload = =>
-      @floorObject.texture = @configureTextureImage(image, 0)
+      @floorObject.texture = @configureTextureImage(image, 1)
 
     image.src = "#{window.baseurl}/resources/xamp23.png"
 
@@ -306,12 +307,18 @@ class Part1Canvas extends Canvas
 
   getModelViewMatrix: ->
     at = vec3(0.0, 0.0, 0.0)
-    up = vec3(0.0, 0.0, -1.0)
-    eye = vec3(0.0, 0.0, 0.0)
+    up = vec3(0.0, 1.0, 0.0)
+    eye = vec3(0.0, 10.0, 0.1)
 
     modelViewMatrix = lookAt(eye, at, up)
-    modelViewMatrix = translate(0.0, Math.sin(@theta) / 3.0 - 0.5, -3.0, 0.0)
+    # modelViewMatrix = mult(modelViewMatrix, rotateX(-90))
 
+  getLightPosition: ->
+    vec4(Math.sin(@theta) * 2.0, 2.0, Math.cos(@theta) * 2.0 + 2.0, 0.0)
+
+  getModelViewMatrixForObject: ->
+    modelViewMatrix = @getModelViewMatrix()
+    # modelViewMatrix = mult(modelViewMatrix, translate(0.0, Math.sin(@theta) / 3.0 - 0.5, -3.0, 0.0))
 
   drawTeapot: ->
     @gl.useProgram(@teapotProgram)
@@ -331,11 +338,11 @@ class Part1Canvas extends Canvas
     @gl.bindBuffer(@gl.ELEMENT_ARRAY_BUFFER, @teapotObject.indexBuffer)
 
     @teapotObject.projectionMatrix = @perspectiveMatrix
-    @teapotObject.modelViewMatrix = @getModelViewMatrix()
+    @teapotObject.modelViewMatrix = @getModelViewMatrixForObject()
 
     @gl.uniformMatrix4fv(@teapotProgram.projectionMatrix, false, flatten(@teapotObject.projectionMatrix));
     @gl.uniformMatrix4fv(@teapotProgram.modelViewMatrix, false, flatten(@teapotObject.modelViewMatrix));
-    @gl.uniform4fv(@teapotProgram.lightPosition, flatten(@lightPosition));
+    @gl.uniform4fv(@teapotProgram.lightPosition, flatten(@getLightPosition()));
 
     @gl.drawElements(@gl.TRIANGLES, @g_drawingInfo.indices.length, @gl.UNSIGNED_SHORT, 0)
 
@@ -357,10 +364,9 @@ class Part1Canvas extends Canvas
     @gl.activeTexture(@gl.TEXTURE0)
     @gl.bindTexture(@gl.TEXTURE_2D, @floorObject.texture)
     @gl.uniform1i(@floorProgram.texMap, 0)
-    @gl.uniform1i(@floorProgram.shadowMap, 1)
 
     @floorObject.projectionMatrix = @perspectiveMatrix
-    @floorObject.modelViewMatrix = mat4()
+    @floorObject.modelViewMatrix = @getModelViewMatrix()
 
     @gl.uniformMatrix4fv(@floorProgram.projectionMatrix, false, flatten(@floorObject.projectionMatrix))
     @gl.uniformMatrix4fv(@floorProgram.modelViewMatrix, false, flatten(@floorObject.modelViewMatrix))
@@ -379,20 +385,18 @@ class Part1Canvas extends Canvas
     @gl.vertexAttribPointer(@shadowProgram.vPosition, 3, @gl.FLOAT, false, 0, 0)
     @gl.enableVertexAttribArray(@shadowProgram.vPosition)
 
-    # Rotate light source
-    @lightPosition[0] = Math.sin(@theta) * 2.0 + 2.0
-    @lightPosition[2] = Math.cos(@theta) * 2.0 - 2.0
+    lightPosition = @getLightPosition()
 
     # Rotate shadow
     shadowProjection = mat4()
     shadowProjection[3][3] = 0.0
-    shadowProjection[3][1] = -1.0/(@lightPosition[1] + 1.0 - 0.0001)
+    shadowProjection[3][1] = -1.0 / (lightPosition[1] + 1.0 + (Math.sin(@theta) / 3.0 - 0.5) + 1.0)
 
     # Model-view matrix for shadow
-    modelViewMatrix = @getModelViewMatrix()
-    modelViewMatrix = mult(modelViewMatrix, translate(@lightPosition[0], @lightPosition[1], @lightPosition[2]))
+    modelViewMatrix = @getModelViewMatrixForObject()
+    modelViewMatrix = mult(modelViewMatrix, translate(lightPosition[0], lightPosition[1], lightPosition[2]))
     modelViewMatrix = mult(modelViewMatrix, shadowProjection)
-    modelViewMatrix = mult(modelViewMatrix, translate(-@lightPosition[0], -@lightPosition[1], -@lightPosition[2]))
+    modelViewMatrix = mult(modelViewMatrix, translate(-lightPosition[0], -lightPosition[1], -lightPosition[2]))
 
     @gl.uniformMatrix4fv(@shadowProgram.projectionMatrix, false, flatten(@perspectiveMatrix))
     @gl.uniformMatrix4fv(@shadowProgram.modelViewMatrix, false, flatten(modelViewMatrix))
@@ -446,59 +450,38 @@ class Part2Canvas extends Part1Canvas
     @floorProgram.shadowMap            = @gl.getUniformLocation(@floorProgram, "shadowMap")
     @floorProgram.projectionMatrix       = @gl.getUniformLocation(@floorProgram, "projectionMatrix")
     @floorProgram.modelViewMatrix        = @gl.getUniformLocation(@floorProgram, "modelViewMatrix")
-    @floorProgram.projectionMatrixFromLight       = @gl.getUniformLocation(@floorProgram, "modelViewMatrixFromLight")
-    @floorProgram.modelViewMatrixFromLight        = @gl.getUniformLocation(@floorProgram, "projectionMatrixFromLight")
+    @floorProgram.projectionMatrixFromLight       = @gl.getUniformLocation(@floorProgram, "projectionMatrixFromLight")
+    @floorProgram.modelViewMatrixFromLight        = @gl.getUniformLocation(@floorProgram, "modelViewMatrixFromLight")
 
   getModelViewMatrixFromLight: ->
-    at = vec3(@lightPosition[0], @lightPosition[1], @lightPosition[2])
+    lightPosition = @getLightPosition()
+
+    # at = vec3(0.0, Math.sin(@theta) / 3.0 - 0.5, -3.0)
     at = vec3(0.0, 0.0, 0.0)
-    # at[1] = 0.0
-    up = vec3(0.0, 0.0, -1.0)
-    eye = vec3(@lightPosition[0], @lightPosition[1], @lightPosition[2])
+    up = vec3(0.0, 1.0, 0.0)
+    eye = vec3(lightPosition[0], lightPosition[1], lightPosition[2])
 
     modelViewMatrix = lookAt(eye, at, up)
+    # mult(modelViewMatrix, translate(0.0, Math.sin(@theta) / 3.0 - 0.5, -3.0, 0.0))
 
   drawShadows: ->
+    # @gl.bindFramebuffer(@gl.FRAMEBUFFER, @shadowObject.framebuffer)
     @gl.useProgram(@shadowProgram)
-
-    # @gl.enable(@gl.BLEND)
-    # @gl.blendFunc(@gl.SRC_ALPHA, @gl.ONE_MINUS_SRC_ALPHA)
-    # @gl.depthFunc(@gl.GREATER)
-
-    @gl.bindFramebuffer(@gl.FRAMEBUFFER, @shadowObject.framebuffer)
-
-    @gl.activeTexture(@gl.TEXTURE1)
-    @gl.bindTexture(@gl.TEXTURE_2D, @shadowObject.framebuffer.texture)
-
 
     # Use shadow program and buffers with depth and blend functions
     @gl.bindBuffer(@gl.ARRAY_BUFFER, @shadowObject.vertexBuffer)
     @gl.vertexAttribPointer(@shadowProgram.vPosition, 3, @gl.FLOAT, false, 0, 0)
     @gl.enableVertexAttribArray(@shadowProgram.vPosition)
 
-    # Rotate light source
-    @lightPosition[0] = Math.sin(@theta) * 2.0 + 2.0
-    @lightPosition[2] = Math.cos(@theta) * 2.0 - 2.0
-
-    # Rotate shadow
-    # shadowProjection = mat4()
-    # shadowProjection[3][3] = 0.0
-    # shadowProjection[3][1] = -1.0/(@lightPosition[1] + 1.0 - 0.0001)
-
     # Model-view matrix for shadow
-    viewModelMatrixFromLight = @getModelViewMatrixFromLight()
-    projectionMatrixFromLight = @perspectiveMatrix
-
-    @gl.uniformMatrix4fv(@shadowProgram.projectionMatrix, false, flatten(projectionMatrixFromLight))
-    @gl.uniformMatrix4fv(@shadowProgram.modelViewMatrix, false, flatten(viewModelMatrixFromLight))
+    @gl.uniformMatrix4fv(@shadowProgram.projectionMatrix, false, flatten(@perspectiveMatrix))
+    @gl.uniformMatrix4fv(@shadowProgram.modelViewMatrix, false, flatten(@getModelViewMatrixFromLight()))
 
     # Draw shadows
     @gl.drawElements(@gl.TRIANGLES, @g_drawingInfo.indices.length, @gl.UNSIGNED_SHORT, 0)
 
     # # Disable blend and depth functions
-    @gl.bindFramebuffer(@gl.FRAMEBUFFER, null)
-    # @gl.disable(@gl.BLEND)
-    # @gl.depthFunc(@gl.LESS)
+    # @gl.bindFramebuffer(@gl.FRAMEBUFFER, null)
 
   drawfloor: ->
     @gl.useProgram(@floorProgram)
@@ -516,14 +499,15 @@ class Part2Canvas extends Part1Canvas
     @gl.enableVertexAttribArray(@floorProgram.vTexCoord)
 
     @gl.activeTexture(@gl.TEXTURE0)
+    @gl.bindTexture(@gl.TEXTURE_2D, @shadowObject.framebuffer.texture)
+    @gl.uniform1i(@floorProgram.shadowMap, 0)
+
+    @gl.activeTexture(@gl.TEXTURE1)
     @gl.bindTexture(@gl.TEXTURE_2D, @floorObject.texture)
-    @gl.uniform1i(@floorProgram.texMap, 0)
+    @gl.uniform1i(@floorProgram.texMap, 1)
 
-    @floorObject.projectionMatrix = @perspectiveMatrix
-    @floorObject.modelViewMatrix = mat4()
-
-    @gl.uniformMatrix4fv(@floorProgram.projectionMatrix, false, flatten(@floorObject.projectionMatrix))
-    @gl.uniformMatrix4fv(@floorProgram.modelViewMatrix, false, flatten(@floorObject.modelViewMatrix))
+    @gl.uniformMatrix4fv(@floorProgram.projectionMatrix, false, flatten(@perspectiveMatrix))
+    @gl.uniformMatrix4fv(@floorProgram.modelViewMatrix, false, flatten(@getModelViewMatrix()))
 
     @gl.uniformMatrix4fv(@floorProgram.projectionMatrixFromLight, false, flatten(@perspectiveMatrix))
     @gl.uniformMatrix4fv(@floorProgram.modelViewMatrixFromLight, false, flatten(@getModelViewMatrixFromLight()))
@@ -539,7 +523,10 @@ class Part2Canvas extends Part1Canvas
     if (!@g_drawingInfo)
       return null
 
+    @gl.bindFramebuffer(@gl.FRAMEBUFFER, @shadowObject.framebuffer)
     @drawShadows()
+    @gl.bindFramebuffer(@gl.FRAMEBUFFER, null)
+    # @drawShadows()
     @drawTeapot()
     @drawfloor()
 
@@ -549,11 +536,12 @@ class Part2Canvas extends Part1Canvas
     error = ->
       if framebuffer then @gl.deleteFramebuffer(framebuffer)
       if texture then @gl.deleteTexture(texture)
-      if depthBuffer then @gl.deleteRenderbuffer(depthBuffer)
+      if renderBuffer then @gl.deleteRenderbuffer(renderBuffer)
       return null
 
     # Create a framebuffer object (FBO)
     framebuffer = @gl.createFramebuffer()
+    @gl.bindFramebuffer(@gl.FRAMEBUFFER, framebuffer)
     if !framebuffer
       console.log('Failed to create frame buffer object')
       return error()
@@ -564,25 +552,30 @@ class Part2Canvas extends Part1Canvas
       console.log('Failed to create texture object')
       return error()
 
-    shadowTexture_width = 2048
-    shadowTexture_height = 2048
+    shadowTexture_width = 512
+    shadowTexture_height = 512
     @gl.bindTexture(@gl.TEXTURE_2D, texture)
     @gl.texImage2D(@gl.TEXTURE_2D, 0, @gl.RGBA, shadowTexture_width, shadowTexture_height, 0, @gl.RGBA, @gl.UNSIGNED_BYTE, null)
-    @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.LINEAR)
+    @gl.generateMipmap(@gl.TEXTURE_2D);
+    # @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MAG_FILTER, @gl.LINEAR);
+    # @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.LINEAR_MIPMAP_NEAREST);
+
+    @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.LINEAR);
+    @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MAG_FILTER, @gl.LINEAR);
+    # @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.LINEAR);
 
     # Create a renderbuffer object and Set its size and parameters
-    depthBuffer = @gl.createRenderbuffer() # Create a renderbuffer object
-    if !depthBuffer
+    renderBuffer = @gl.createRenderbuffer() # Create a renderbuffer object
+    if !renderBuffer
       console.log('Failed to create renderbuffer object')
       return error()
 
-    @gl.bindRenderbuffer(@gl.RENDERBUFFER, depthBuffer)
+    @gl.bindRenderbuffer(@gl.RENDERBUFFER, renderBuffer)
     @gl.renderbufferStorage(@gl.RENDERBUFFER, @gl.DEPTH_COMPONENT16, shadowTexture_width, shadowTexture_height)
 
     # Attach the texture and the renderbuffer object to the FBO
-    @gl.bindFramebuffer(@gl.FRAMEBUFFER, framebuffer)
     @gl.framebufferTexture2D(@gl.FRAMEBUFFER, @gl.COLOR_ATTACHMENT0, @gl.TEXTURE_2D, texture, 0)
-    @gl.framebufferRenderbuffer(@gl.FRAMEBUFFER, @gl.DEPTH_ATTACHMENT, @gl.RENDERBUFFER, depthBuffer)
+    @gl.framebufferRenderbuffer(@gl.FRAMEBUFFER, @gl.DEPTH_ATTACHMENT, @gl.RENDERBUFFER, renderBuffer)
 
     # Check if FBO is configured correctly
     e = @gl.checkFramebufferStatus(@gl.FRAMEBUFFER)

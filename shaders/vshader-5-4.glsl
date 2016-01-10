@@ -9,7 +9,7 @@ varying vec4 color;
 
 void main() {
   vec3 pos = (modelViewMatrix * vPosition).xyz;
-  vec3 light = (modelViewMatrix * vec4(lightPosition.xyz,1)).xyz;
+  vec3 light = (modelViewMatrix * vec4(lightPosition.xyz, 1)).xyz;
   L = normalize(pos - light);
   E = normalize(-pos);
   N = normalize((modelViewMatrix * vec4(-vNormal.xyz, 0)).xyz);
