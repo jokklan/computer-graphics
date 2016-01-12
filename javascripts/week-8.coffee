@@ -282,7 +282,7 @@ class Part1Canvas extends Canvas
   getModelViewMatrix: ->
     at = vec3(0.0, 0.0, 0.0)
     up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(0.0, 10.0, 1.0)
+    eye = vec3(0.0, 0.0, 1.0)
 
     modelViewMatrix = lookAt(eye, at, up)
     # modelViewMatrix = mult(modelViewMatrix, rotateX(-90))
@@ -293,7 +293,7 @@ class Part1Canvas extends Canvas
 
   getModelViewMatrixForObject: ->
     modelViewMatrix = @getModelViewMatrix()
-    y = 2.0 #Math.sin(@theta) / 3.0 - 0.5
+    y = Math.sin(@theta) / 3.0 - 0.5
     modelViewMatrix = mult(modelViewMatrix, translate(0.0, y, -3.0, 0.0))
 
   drawTeapot: ->
