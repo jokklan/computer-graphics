@@ -11,12 +11,10 @@ class Canvas
     @canvas = @gl.canvas
     @reset()
 
+    @gl.viewport(0, 0, @canvas.width, @canvas.height)
     @setBackground()
 
-    # @program = @loadShaders()
-
     @gl.enable(@gl.DEPTH_TEST)
-    @gl.enable(@gl.CULL_FACE)
 
     @setup()
 
@@ -51,30 +49,6 @@ class Canvas
     vAttribute = @gl.getAttribLocation(program, attribute)
     @gl.vertexAttribPointer(vAttribute, pointerSize, @gl.FLOAT, false, 0, 0)
     @gl.enableVertexAttribArray(vAttribute)
-
-  setModelViewMatrix:(radius = 6.0, theta = 0.0, phi = 0.0) ->
-    theta  = theta * Math.PI/180.0
-    phi    = phi * Math.PI/180.0
-
-    at = vec3(0.0, 0.0, 0.0)
-    up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(radius*Math.sin(phi), radius*Math.sin(theta), radius*Math.cos(phi))
-
-    modelViewMatrix = lookAt(eye, at , up)
-
-  setPerspective:(depth = 10, size = 2.0, xOffset = 0, yOffset = 0) ->
-    near = -depth
-    far = depth
-    left = -size + xOffset
-    right = size + xOffset
-    ytop = size + yOffset
-    bottom = -size + yOffset
-
-    projectionMatrix = ortho(left, right, bottom, ytop, near, far)
-
-  setLightningProduct: (type, light, material)->
-    product = mult(light, material)
-    @gl.uniform4fv(@gl.getUniformLocation(@program, type), product)
 
   # Create a buffer object and perform the initial configuration
   initVertexBuffers: (program)->
@@ -257,7 +231,7 @@ class Part1Canvas extends Canvas
 
 
   setup: ->
-    @perspectiveMatrix = perspective(45.0, 1.0, 0.001, 15.0)
+    @perspectiveMatrix = perspective(65.0, 1.0, 0.001, 15.0)
     @g_objDoc = null # The information of OBJ file
     @g_drawinglnfo = null # The information for drawing 3D model
 
@@ -308,17 +282,19 @@ class Part1Canvas extends Canvas
   getModelViewMatrix: ->
     at = vec3(0.0, 0.0, 0.0)
     up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(0.0, 10.0, 0.1)
+    eye = vec3(0.0, 10.0, 1.0)
 
     modelViewMatrix = lookAt(eye, at, up)
     # modelViewMatrix = mult(modelViewMatrix, rotateX(-90))
 
   getLightPosition: ->
-    vec4(Math.sin(@theta) * 2.0, 2.0, Math.cos(@theta) * 2.0 + 2.0, 0.0)
+    vec4(Math.sin(@theta) * 2.0, 2.0, Math.cos(@theta) * 2.0 - 2.0, 0.0)
+    # vec4(0.0, 2.0, 2.0, 0.0)
 
   getModelViewMatrixForObject: ->
     modelViewMatrix = @getModelViewMatrix()
-    # modelViewMatrix = mult(modelViewMatrix, translate(0.0, Math.sin(@theta) / 3.0 - 0.5, -3.0, 0.0))
+    y = 2.0 #Math.sin(@theta) / 3.0 - 0.5
+    modelViewMatrix = mult(modelViewMatrix, translate(0.0, y, -3.0, 0.0))
 
   drawTeapot: ->
     @gl.useProgram(@teapotProgram)
@@ -436,6 +412,9 @@ class Part2Canvas extends Part1Canvas
     @shadowObject = new Object()
     @shadowObject.vertexBuffer = @createEmptyArrayBuffer(@shadowProgram.vPosition, 3, @gl.FLOAT)
     @shadowObject.indexBuffer = @gl.createBuffer()
+    @shadowObject.textureWidth = 1024
+    @shadowObject.textureHeight = 1024
+
     @shadowObject.framebuffer = @initFramebufferObject()
 
     @gl.bindBuffer(@gl.ARRAY_BUFFER, null)
@@ -464,6 +443,8 @@ class Part2Canvas extends Part1Canvas
     modelViewMatrix = lookAt(eye, at, up)
     # mult(modelViewMatrix, translate(0.0, Math.sin(@theta) / 3.0 - 0.5, -3.0, 0.0))
 
+
+
   drawShadows: ->
     # @gl.bindFramebuffer(@gl.FRAMEBUFFER, @shadowObject.framebuffer)
     @gl.useProgram(@shadowProgram)
@@ -477,6 +458,7 @@ class Part2Canvas extends Part1Canvas
     @gl.uniformMatrix4fv(@shadowProgram.projectionMatrix, false, flatten(@perspectiveMatrix))
     @gl.uniformMatrix4fv(@shadowProgram.modelViewMatrix, false, flatten(@getModelViewMatrixFromLight()))
 
+    @gl.bindBuffer(@gl.ELEMENT_ARRAY_BUFFER, @shadowObject.indexBuffer)
     # Draw shadows
     @gl.drawElements(@gl.TRIANGLES, @g_drawingInfo.indices.length, @gl.UNSIGNED_SHORT, 0)
 
@@ -524,9 +506,11 @@ class Part2Canvas extends Part1Canvas
       return null
 
     @gl.bindFramebuffer(@gl.FRAMEBUFFER, @shadowObject.framebuffer)
+    @gl.viewport(0, 0, @shadowObject.textureWidth, @shadowObject.textureHeight);
     @drawShadows()
     @gl.bindFramebuffer(@gl.FRAMEBUFFER, null)
-    # @drawShadows()
+    @gl.viewport(0, 0, @canvas.width, @canvas.height);
+    @drawShadows()
     @drawTeapot()
     @drawfloor()
 
@@ -541,7 +525,6 @@ class Part2Canvas extends Part1Canvas
 
     # Create a framebuffer object (FBO)
     framebuffer = @gl.createFramebuffer()
-    @gl.bindFramebuffer(@gl.FRAMEBUFFER, framebuffer)
     if !framebuffer
       console.log('Failed to create frame buffer object')
       return error()
@@ -552,16 +535,14 @@ class Part2Canvas extends Part1Canvas
       console.log('Failed to create texture object')
       return error()
 
-    shadowTexture_width = 512
-    shadowTexture_height = 512
     @gl.bindTexture(@gl.TEXTURE_2D, texture)
-    @gl.texImage2D(@gl.TEXTURE_2D, 0, @gl.RGBA, shadowTexture_width, shadowTexture_height, 0, @gl.RGBA, @gl.UNSIGNED_BYTE, null)
+    @gl.texImage2D(@gl.TEXTURE_2D, 0, @gl.RGBA, @shadowObject.textureWidth, @shadowObject.textureHeight, 0, @gl.RGBA, @gl.UNSIGNED_BYTE, null)
     @gl.generateMipmap(@gl.TEXTURE_2D);
     # @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MAG_FILTER, @gl.LINEAR);
     # @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.LINEAR_MIPMAP_NEAREST);
 
     @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.LINEAR);
-    @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MAG_FILTER, @gl.LINEAR);
+    # @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MAG_FILTER, @gl.LINEAR);
     # @gl.texParameteri(@gl.TEXTURE_2D, @gl.TEXTURE_MIN_FILTER, @gl.LINEAR);
 
     # Create a renderbuffer object and Set its size and parameters
@@ -571,16 +552,17 @@ class Part2Canvas extends Part1Canvas
       return error()
 
     @gl.bindRenderbuffer(@gl.RENDERBUFFER, renderBuffer)
-    @gl.renderbufferStorage(@gl.RENDERBUFFER, @gl.DEPTH_COMPONENT16, shadowTexture_width, shadowTexture_height)
+    @gl.renderbufferStorage(@gl.RENDERBUFFER, @gl.DEPTH_COMPONENT16, @shadowObject.textureWidth, @shadowObject.textureHeight)
 
     # Attach the texture and the renderbuffer object to the FBO
+    @gl.bindFramebuffer(@gl.FRAMEBUFFER, framebuffer)
     @gl.framebufferTexture2D(@gl.FRAMEBUFFER, @gl.COLOR_ATTACHMENT0, @gl.TEXTURE_2D, texture, 0)
     @gl.framebufferRenderbuffer(@gl.FRAMEBUFFER, @gl.DEPTH_ATTACHMENT, @gl.RENDERBUFFER, renderBuffer)
 
     # Check if FBO is configured correctly
-    e = @gl.checkFramebufferStatus(@gl.FRAMEBUFFER)
-    if @gl.FRAMEBUFFER_COMPLETE != e
-      console.log('Frame buffer object is incomplete: ' + e.toString())
+    status = @gl.checkFramebufferStatus(@gl.FRAMEBUFFER)
+    if @gl.FRAMEBUFFER_COMPLETE != status
+      console.log('Frame buffer object is incomplete: ' + status.toString())
       return error()
 
     framebuffer.texture = texture # keep the required object

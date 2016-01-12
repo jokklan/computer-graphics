@@ -13,10 +13,10 @@ class Canvas
 
     @setBackground()
 
-    # @program = @loadShaders()
-
+    @gl.viewport(0, 0, @canvas.width, @canvas.height)
     @gl.enable(@gl.DEPTH_TEST)
-    # @gl.cullFace(@gl.BACK)
+    @gl.enable(@gl.CULL_FACE)
+    @gl.cullFace(@gl.BACK)
 
     @setup()
 
@@ -36,7 +36,7 @@ class Canvas
     WebGLUtils.setupWebGL(canvas)
 
   setBackground: ->
-    @gl.clearColor(0.3921, 0.5843, 0.9294, 1.0)
+    @gl.clearColor(0.2, 0.2, 0.2, 1.0)
 
   loadShaders: ->
     program = initShaders(@gl, "#{window.baseurl}/shaders/vshader-#{@program_version}.glsl", "#{window.baseurl}/shaders/fshader-#{@program_version}.glsl")
@@ -53,30 +53,6 @@ class Canvas
     vAttribute = @gl.getAttribLocation(program, attribute)
     @gl.vertexAttribPointer(vAttribute, pointerSize, @gl.FLOAT, false, 0, 0)
     @gl.enableVertexAttribArray(vAttribute)
-
-  setModelViewMatrix:(radius = 6.0, theta = 0.0, phi = 0.0) ->
-    theta  = theta * Math.PI/180.0
-    phi    = phi * Math.PI/180.0
-
-    at = vec3(0.0, 0.0, 0.0)
-    up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(radius*Math.sin(phi), radius*Math.sin(theta), radius*Math.cos(phi))
-
-    modelViewMatrix = lookAt(eye, at , up)
-
-  setPerspective:(depth = 10, size = 2.0, xOffset = 0, yOffset = 0) ->
-    near = -depth
-    far = depth
-    left = -size + xOffset
-    right = size + xOffset
-    ytop = size + yOffset
-    bottom = -size + yOffset
-
-    projectionMatrix = ortho(left, right, bottom, ytop, near, far)
-
-  setLightningProduct: (program, type, light, material)->
-    product = mult(light, material)
-    @gl.uniform4fv(@gl.getUniformLocation(program, type), product)
 
   # Create a buffer object and perform the initial configuration
   initVertexBuffers: (program)->
@@ -321,9 +297,9 @@ class Part1Canvas extends Canvas
 
 
   setup: ->
-    @perspectiveMatrix = perspective(90.0, 1.0, 0.00001, 15.0)
+    @perspectiveMatrix = perspective(90.0, 1.0, 0.1, 100.0)
     @rotationMatrix = mat4()
-    @zoom = -5.0
+    @zoom = 7.0
     @g_objDoc = null # The information of OBJ file
     @g_drawinglnfo = null # The information for drawing 3D model
 
@@ -358,7 +334,8 @@ class Part1Canvas extends Canvas
     @lightObject.colorBuffer = @createEmptyArrayBuffer(@lightProgram.vColor, 4, @gl.FLOAT)
 
     # Start reading the OBJ file
-    @readOBJFile("#{window.baseurl}/resources/teapot.obj", 0.5, true)
+    # @readOBJFile("#{window.baseurl}/resources/project/box_with_character.obj", 0.0005, true)
+    @readOBJFile("#{window.baseurl}/resources/teapot.obj", 0.60, true)
 
     @floorObject = new Object()
     @floorObject.vertexBuffer = @createEmptyArrayBuffer(@floorProgram.vPosition, 4, @gl.FLOAT)
@@ -424,13 +401,13 @@ class Part1Canvas extends Canvas
 
   onKeyDown: (event)->
     switch event.keyCode
-      when 187 then @zoom += 1.0 # +
-      when 189 then @zoom -= 1.0 # -
+      when 187 then @zoom -= 1.0 # +
+      when 189 then @zoom += 1.0 # -
 
   tick: ->
     @theta += @speed
-    if @theta > 2 * Math.PI
-      @theta -= 2 * Math.PI
+    # if @theta > 2 * Math.PI
+    #   @theta -= 2 * Math.PI
 
     @draw()
     requestAnimationFrame =>
@@ -439,35 +416,41 @@ class Part1Canvas extends Canvas
   getModelViewMatrix: ->
     at = vec3(0.0, 0.0, 0.0)
     up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(0.0, 0.0, @zoom)
+    eye = vec3(0.0, @zoom, @zoom)
 
     modelViewMatrix = lookAt(eye, at, up)
     modelViewMatrix = mult(modelViewMatrix, @rotationMatrix)
 
   getLightPositions: ->
-    radius = 20.0
-    [[
-      Math.sin(@theta) * radius,
-      0.0,
-      Math.cos(@theta) * radius,
+    radius = 50.0
+    center = [0, 0, 0]
+    offset = Math.PI * 2
+    [
+      @addLight([1, 0, 0], [0, 1, 1], center, radius, 0.0 * offset, 1.0),
+      @addLight([0, 1, 0], [1, 0, 1], center, radius, 0.1 * offset, 1.2)
+      @addLight([0, 0, 1], [1, 1, 0], center, radius, 0.2 * offset, 1.4)
+      @addLight([1, 1, 0], [0, 0, 1], center, radius, 0.3 * offset, 1.6)
+      @addLight([1, 0, 1], [0, 1, 0], center, radius, 0.4 * offset, 1.8)
+      @addLight([0, 1, 1], [1, 0, 0], center, radius, 0.5 * offset, 2.0)
+    ]
+
+  addLight: (a, b, center, radius, offset, speed)->
+    theta = (@theta + offset) * speed
+    [
+      center[0] + radius * Math.cos(theta) * a[0] + radius * Math.sin(theta) * b[0],
+      center[1] + radius * Math.cos(theta) * a[1] + radius * Math.sin(theta) * b[1],
+      center[2] + radius * Math.cos(theta) * a[2] + radius * Math.sin(theta) * b[2],
       0.0
-    ],[
-      Math.cos(@theta) * radius,
-      Math.sin(@theta) * radius,
-      Math.cos(@theta) * radius,
-      0.0
-    ],[
-      Math.sin(@theta) * radius,
-      Math.sin(@theta) * radius,
-      Math.cos(@theta) * radius,
-      0.0
-    ]]
+    ]
 
   getLightColors: ->
     [
       vec4( 1.0, 0.0, 0.0, 1.0 ),
       vec4( 0.0, 1.0, 0.0, 1.0 ),
-      vec4( 0.0, 0.0, 1.0, 1.0 )
+      vec4( 0.0, 0.0, 1.0, 1.0 ),
+      vec4( 0.0, 1.0, 1.0, 1.0 ),
+      vec4( 1.0, 0.0, 1.0, 1.0 ),
+      vec4( 1.0, 1.0, 0.0, 1.0 ),
     ]
 
 
@@ -600,8 +583,8 @@ class Part1Canvas extends Canvas
     for pos, index in @getLightPositions()
       @drawTetrahedron(4, pos, colors[index])
 
-    @drawfloor()
-    @drawShadows()
+    # @drawfloor()
+    # @drawShadows()
     @drawTeapot()
     @drawLights()
 

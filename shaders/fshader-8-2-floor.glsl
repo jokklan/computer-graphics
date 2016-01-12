@@ -11,7 +11,8 @@ void main() {
   vec3 shadowCoord = (fPositionFromLight.xyz / fPositionFromLight.w) / 2.0 + 0.5;
   vec4 rgbaDepth = texture2D(shadowMap, shadowCoord.xy);
   float depth = rgbaDepth.r;
-  float visibility = (shadowCoord.r > depth + 0.005) ? 1.0 : 0.7;
-  gl_FragColor = vec4(fColor.rgb * visibility, fColor.a) * texture2D(texMap, fTexCoord);
+  float visibility = (shadowCoord.z > depth + 0.005) ? 0.7 : 1.0;
+  vec4 color = texture2D(texMap, fTexCoord);
+  gl_FragColor = vec4(color.rgb * visibility, color.a);
   //gl_FragColor = texture2D(shadowMap, shadowCoord.xy);
 }

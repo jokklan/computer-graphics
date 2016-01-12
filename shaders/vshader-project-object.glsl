@@ -4,7 +4,7 @@ attribute vec4 vColor;
 attribute vec4 vNormal;
 
 // Light attributes
-const int NUM_LIGHTS = 3;
+const int NUM_LIGHTS = 6;
 varying vec3 N;
 varying vec3 L[NUM_LIGHTS];
 

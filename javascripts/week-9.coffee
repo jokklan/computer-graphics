@@ -2,7 +2,7 @@
 ---
 class Canvas
   theta: 0.0
-  speed: 0.02
+  speed: 0.035
 
   constructor: (selector)->
     # Part 1
@@ -50,30 +50,6 @@ class Canvas
     vAttribute = @gl.getAttribLocation(program, attribute)
     @gl.vertexAttribPointer(vAttribute, pointerSize, @gl.FLOAT, false, 0, 0)
     @gl.enableVertexAttribArray(vAttribute)
-
-  setModelViewMatrix:(radius = 6.0, theta = 0.0, phi = 0.0) ->
-    theta  = theta * Math.PI/180.0
-    phi    = phi * Math.PI/180.0
-
-    at = vec3(0.0, 0.0, 0.0)
-    up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(radius*Math.sin(phi), radius*Math.sin(theta), radius*Math.cos(phi))
-
-    modelViewMatrix = lookAt(eye, at , up)
-
-  setPerspective:(depth = 10, size = 2.0, xOffset = 0, yOffset = 0) ->
-    near = -depth
-    far = depth
-    left = -size + xOffset
-    right = size + xOffset
-    ytop = size + yOffset
-    bottom = -size + yOffset
-
-    projectionMatrix = ortho(left, right, bottom, ytop, near, far)
-
-  setLightningProduct: (type, light, material)->
-    product = mult(light, material)
-    @gl.uniform4fv(@gl.getUniformLocation(@program, type), product)
 
   # Create a buffer object and perform the initial configuration
   initVertexBuffers: (program)->
@@ -247,12 +223,14 @@ class Canvas
     modelViewMatrix = lookAt(eye, at, up)
 
   getModelViewMatrix: ->
-    at = vec3(0.0, 0.0, 1.0)
+    at = vec3(0.0, 0.0, 0.0)
     up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(0.0, 0.0, -3.0)
+    eye = vec3(0.0, 0.0, 3.0)
 
-    modelViewMatrix = lookAt(eye, at, up)
-    modelViewMatrix = mult(modelViewMatrix, translate(0.0, Math.sin(@theta) / 3.0 - 0.5, 0.0, 0.0))
+    lookAt(eye, at, up)
+
+  getModelViewMatrixForObject: ->
+    mult(@getModelViewMatrix(), translate(0.0, (Math.sin(@theta) * 0.5 - 0.5), -3.0, 0.0))
 
 class Part1Canvas extends Canvas
   vertices: [
@@ -295,8 +273,8 @@ class Part1Canvas extends Canvas
     super(selector)
 
   setup: ->
-    @perspectiveMatrix = perspective(65.0, 1.0, 0.001, 15.0)
-    @lightPosition = vec4(2.0, 2.0, 2.0, 0.0)
+    @perspectiveMatrix = perspective(65.0, 1.0, 0.001, 25.0)
+    @lightPosition = vec4(1.0, 2.0, 1.0, 0.0)
     @g_objDoc = null # The information of OBJ file
     @g_drawinglnfo = null # The information for drawing 3D model
 
@@ -340,7 +318,7 @@ class Part1Canvas extends Canvas
     if @theta > 2 * Math.PI
       @theta -= 2 * Math.PI
 
-    @draw()
+    @render()
     requestAnimationFrame =>
       @tick()
 
@@ -382,7 +360,7 @@ class Part1Canvas extends Canvas
     @floorProgram.projectionMatrixFromLight       = @gl.getUniformLocation(@floorProgram, "modelViewMatrixFromLight")
     @floorProgram.modelViewMatrixFromLight        = @gl.getUniformLocation(@floorProgram, "projectionMatrixFromLight")
 
-  drawTeapot: (transformationMatrix = mat4(), projectionMatrix = @perspectiveMatrix)->
+  drawTeapot: (modelViewMatrix, projectionMatrix)->
     @gl.useProgram(@teapotProgram)
 
     @gl.bindBuffer(@gl.ARRAY_BUFFER, @teapotObject.vertexBuffer)
@@ -400,7 +378,7 @@ class Part1Canvas extends Canvas
     @gl.bindBuffer(@gl.ELEMENT_ARRAY_BUFFER, @teapotObject.indexBuffer)
 
     @teapotObject.projectionMatrix = projectionMatrix
-    @teapotObject.modelViewMatrix = mult(@getModelViewMatrix(), transformationMatrix)
+    @teapotObject.modelViewMatrix = modelViewMatrix
 
     @gl.uniformMatrix4fv(@teapotProgram.projectionMatrix, false, flatten(@teapotObject.projectionMatrix));
     @gl.uniformMatrix4fv(@teapotProgram.modelViewMatrix, false, flatten(@teapotObject.modelViewMatrix));
@@ -424,15 +402,6 @@ class Part1Canvas extends Canvas
     @gl.bindBuffer(@gl.ARRAY_BUFFER, @shadowObject.vertexBuffer)
     @gl.vertexAttribPointer(@shadowProgram.vPosition, 3, @gl.FLOAT, false, 0, 0)
     @gl.enableVertexAttribArray(@shadowProgram.vPosition)
-
-    # Rotate light source
-    @lightPosition[0] = Math.sin(@theta) * 2.0 + 2.0
-    @lightPosition[2] = Math.cos(@theta) * 2.0 - 2.0
-
-    # Rotate shadow
-    # shadowProjection = mat4()
-    # shadowProjection[3][3] = 0.0
-    # shadowProjection[3][1] = -1.0/(@lightPosition[1] + 1.0 - 0.0001)
 
     # Model-view matrix for shadow
     viewModelMatrixFromLight = @getModelViewMatrixFromLight()
@@ -468,26 +437,15 @@ class Part1Canvas extends Canvas
     @gl.bindTexture(@gl.TEXTURE_2D, @floorObject.texture)
     @gl.uniform1i(@floorProgram.texMap, 0)
 
-    @floorObject.projectionMatrix = @perspectiveMatrix
-    @floorObject.modelViewMatrix = mat4()
-
-    @gl.uniformMatrix4fv(@floorProgram.projectionMatrix, false, flatten(@floorObject.projectionMatrix))
-    @gl.uniformMatrix4fv(@floorProgram.modelViewMatrix, false, flatten(@floorObject.modelViewMatrix))
+    @gl.uniformMatrix4fv(@floorProgram.projectionMatrix, false, flatten(@perspectiveMatrix))
+    @gl.uniformMatrix4fv(@floorProgram.modelViewMatrix, false, flatten(@getModelViewMatrix()))
 
     @gl.uniformMatrix4fv(@floorProgram.projectionMatrixFromLight, false, flatten(@perspectiveMatrix))
     @gl.uniformMatrix4fv(@floorProgram.modelViewMatrixFromLight, false, flatten(@getModelViewMatrixFromLight()))
 
     @gl.drawArrays(@gl.TRIANGLES, 0, 6)
 
-
-  draw: ->
-    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT) # Clear color and depth buffers
-    if @g_objDoc != null && @g_objDoc.isMTLComplete() # OBJ and all MTLs are available
-      @g_drawingInfo = @onReadComplete()
-      @g_objDoc = null
-    if (!@g_drawingInfo)
-      return null
-
+  getReflectionMatrix: ->
     v = vec3(0.0, 1.0, 0.0)
     p = vec3(1.0, 0.0, 0.0)
     reflectionMatrix = mat4(
@@ -497,41 +455,38 @@ class Part1Canvas extends Canvas
       [2 * dot(p, v) * v[0], 2 * dot(p, v) * v[1], 2 * dot(p, v) * v[2], 1]
     )
 
-    @drawFloor()
-    @drawTeapot(reflectionMatrix)
-    @drawTeapot()
+  updateLightPosition: ->
+    @lightPosition[0] = Math.sin(@theta) * 2.0 #+ 2.0
+    @lightPosition[2] = Math.cos(@theta) * 2.0 #- 2.0
+
+  render: ->
+    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT) # Clear color and depth buffers
+    if @g_objDoc != null && @g_objDoc.isMTLComplete() # OBJ and all MTLs are available
+      @g_drawingInfo = @onReadComplete()
+      @g_objDoc = null
+    if (!@g_drawingInfo)
+      return null
+
+    @updateLightPosition()
+    @draw()
+
+  getReflectionModelViewMatrix: ->
+    mult(@getModelViewMatrixForObject(), translate(0, 2.0, 0, 0))
+
+  draw: ->
+    @drawTeapot(@getReflectionModelViewMatrix(), mult(@perspectiveMatrix, @getReflectionMatrix()))
+    @drawTeapot(@getModelViewMatrixForObject(), @perspectiveMatrix)
 
 class Part2Canvas extends Part1Canvas
   constructor: (selector = 'part_2')->
     super(selector)
 
-  getModelViewMatrix: ->
-    at = vec3(0.0, 0.0, 1.0)
-    up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(0.0, 0.0, -3.0)
-
-    modelViewMatrix = lookAt(eye, at, up)
-    modelViewMatrix = mult(modelViewMatrix, translate(0.0, Math.sin(@theta) / 2.0 - 0.5, 0.0, 0.0))
+  getModelViewMatrixForObject: ->
+    mult(@getModelViewMatrix(), translate(0.0, Math.sin(@theta), -3.0, 0.0))
 
   draw: ->
-    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT) # Clear color and depth buffers
-    if @g_objDoc != null && @g_objDoc.isMTLComplete() # OBJ and all MTLs are available
-      @g_drawingInfo = @onReadComplete()
-      @g_objDoc = null
-    if (!@g_drawingInfo)
-      return null
-
-    v = vec3(0.0, 1.0, 0.0)
-    p = vec3(1.0, 0.0, 0.0)
-    reflectionMatrix = mat4(
-      [1 - 2 * Math.pow(v[0], 2), - 2 * v[0] * v[1], - 2 * v[0] * v[2], 0],
-      [- 2 * v[0] * v[1], 1 - 2 * Math.pow(v[1], 2), - 2 * v[1] * v[2], 0],
-      [- 2 * v[0] * v[2], - 2 * v[1] * v[2], 1 - 2 * Math.pow(v[2], 2), 0],
-      [2 * dot(p, v) * v[0], 2 * dot(p, v) * v[1], 2 * dot(p, v) * v[2], 1]
-    )
-
-    @drawTeapot(reflectionMatrix)
-    @drawTeapot()
+    @drawTeapot(@getReflectionModelViewMatrix(), mult(@perspectiveMatrix, @getReflectionMatrix()))
+    @drawTeapot(@getModelViewMatrixForObject(), @perspectiveMatrix)
 
     @gl.enable(@gl.BLEND)
     @gl.blendFunc(@gl.SRC_ALPHA, @gl.ONE_MINUS_SRC_ALPHA)
@@ -547,22 +502,6 @@ class Part3Canvas extends Part2Canvas
     WebGLUtils.setupWebGL(canvas, { alpha: false, stencil: true })
 
   draw: ->
-    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT) # Clear color and depth buffers
-    if @g_objDoc != null && @g_objDoc.isMTLComplete() # OBJ and all MTLs are available
-      @g_drawingInfo = @onReadComplete()
-      @g_objDoc = null
-    if (!@g_drawingInfo)
-      return null
-
-    v = vec3(0.0, 1.0, 0.0)
-    p = vec3(1.0, 0.0, 0.0)
-    reflectionMatrix = mat4(
-      [1 - 2 * Math.pow(v[0], 2), - 2 * v[0] * v[1], - 2 * v[0] * v[2], 0],
-      [- 2 * v[0] * v[1], 1 - 2 * Math.pow(v[1], 2), - 2 * v[1] * v[2], 0],
-      [- 2 * v[0] * v[2], - 2 * v[1] * v[2], 1 - 2 * Math.pow(v[2], 2), 0],
-      [2 * dot(p, v) * v[0], 2 * dot(p, v) * v[1], 2 * dot(p, v) * v[2], 1]
-    )
-
     @gl.enable(@gl.BLEND)
     @gl.blendFunc(@gl.SRC_ALPHA, @gl.ONE_MINUS_SRC_ALPHA)
 
@@ -576,25 +515,21 @@ class Part3Canvas extends Part2Canvas
     @gl.depthMask(true)
     @gl.colorMask(true, true, true, true)
     @gl.stencilFunc(@gl.EQUAL, 1, 0xFF)
-    @drawTeapot(reflectionMatrix)
+
+    @drawTeapot(@getReflectionModelViewMatrix(), mult(@perspectiveMatrix, @getReflectionMatrix()))
 
     @gl.clear(@gl.DEPTH_BUFFER_BIT)
     @gl.stencilFunc(@gl.ALWAYS, 1, 0xFF)
-    @drawTeapot()
+    @drawTeapot(@getModelViewMatrixForObject(), @perspectiveMatrix)
     @drawFloor()
 
 class Part4Canvas extends Part3Canvas
   constructor: (selector = 'part_4')->
     super(selector)
 
-  getModelViewMatrix: ->
-    at = vec3(0.0, 0.0, 1.0)
-    up = vec3(0.0, 1.0, 0.0)
-    eye = vec3(0.0, 0.0, -3.0)
-
-    modelViewMatrix = lookAt(eye, at, up)
-    translateMatrix = translate(0.0, (Math.sin(@theta) / 2.0 - 0.5) * 1.8, 0.0, 0.0)
-    modelViewMatrix = mult(modelViewMatrix, translateMatrix)
+  getModelViewMatrixForObject: ->
+    translateMatrix = translate(0.0, (Math.sin(@theta) / 2.0 - 0.5) * 1.8, -3.0, 0.0)
+    mult(@getModelViewMatrix(), translateMatrix)
 
   modifyProjectionMatrix: (clipplane, projection) ->
     # MV.js has no copy constructor for matrices
@@ -618,26 +553,15 @@ class Part4Canvas extends Part3Canvas
     return oblique
 
   sign: (x) ->
-    return x > 0.0 ? 1.0 : (x < 0.0 ? -1.0 : 0.0)
+    if x > 0.0
+      return 1.0
+    else if x < 0.0
+      return -1.0
+    else
+      return 0.0
 
   draw: ->
-    @gl.clear(@gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT) # Clear color and depth buffers
-    if @g_objDoc != null && @g_objDoc.isMTLComplete() # OBJ and all MTLs are available
-      @g_drawingInfo = @onReadComplete()
-      @g_objDoc = null
-    if (!@g_drawingInfo)
-      return null
-
-    v = vec3(0.0, 1.0, 0.0)
-    p = vec3(1.0, 0.0, 0.0)
-    reflectionMatrix = mat4(
-      [1 - 2 * Math.pow(v[0], 2), - 2 * v[0] * v[1], - 2 * v[0] * v[2], 0],
-      [- 2 * v[0] * v[1], 1 - 2 * Math.pow(v[1], 2), - 2 * v[1] * v[2], 0],
-      [- 2 * v[0] * v[2], - 2 * v[1] * v[2], 1 - 2 * Math.pow(v[2], 2), 0],
-      [2 * dot(p, v) * v[0], 2 * dot(p, v) * v[1], 2 * dot(p, v) * v[2], 1]
-    )
-
-    reflectionPlaneEquation = vec4(0.0, 1.0, 0.0, 1.0)
+    reflectionPlaneEquation = vec4(0.0, -1.0, 0.0, -1.0)
     reflectionProjectionMatrix = @modifyProjectionMatrix(reflectionPlaneEquation, @perspectiveMatrix)
 
     @gl.enable(@gl.BLEND)
@@ -653,11 +577,11 @@ class Part4Canvas extends Part3Canvas
     @gl.depthMask(true)
     @gl.colorMask(true, true, true, true)
     @gl.stencilFunc(@gl.EQUAL, 1, 0xFF)
-    @drawTeapot(reflectionMatrix, reflectionProjectionMatrix)
+    @drawTeapot(@getReflectionModelViewMatrix(), mult(reflectionProjectionMatrix, @getReflectionMatrix()))
 
     @gl.clear(@gl.DEPTH_BUFFER_BIT)
     @gl.stencilFunc(@gl.ALWAYS, 1, 0xFF)
-    @drawTeapot()
+    @drawTeapot(@getModelViewMatrixForObject(), @perspectiveMatrix)
     @drawFloor()
 
 

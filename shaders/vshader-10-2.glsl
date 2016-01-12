@@ -1,12 +1,12 @@
 attribute vec4 vPosition;
-attribute vec4 vNormal;
 
-varying vec4 fNormal;
+varying vec4 fTexCoords;
 
 uniform mat4 projectionMatrix;
 uniform mat4 modelViewMatrix;
+uniform mat4 Mtex;
 
 void main() {
-  fNormal = vNormal;
+  fTexCoords = Mtex * vPosition;
   gl_Position = projectionMatrix * modelViewMatrix * vPosition;
 }

@@ -8,9 +8,5 @@ uniform sampler2D texMap;
 uniform sampler2D shadowMap;
 
 void main() {
-  vec3 shadowCoord = (fPositionFromLight.xyz / fPositionFromLight.w) / 2.0 + 0.5;
-  vec4 rgbaDepth = texture2D(shadowMap, shadowCoord.xy);
-  float depth = rgbaDepth.r;
-  float visibility = (shadowCoord.r > depth + 0.005) ? 0.7 : 1.0;
-  gl_FragColor = vec4(fColor.rgb * visibility, 0.5) * texture2D(texMap, fTexCoord);
+  gl_FragColor = vec4(fColor.rgb, 0.5) * texture2D(texMap, fTexCoord);
 }

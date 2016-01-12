@@ -1,0 +1,56 @@
+#
+## Alias OBJ Material File
+# Exported from SketchUp, (c) 2000-2012 Trimble Navigation Limited
+
+newmtl material_59
+Ka 0.000000 0.000000 0.000000
+Kd 0.329412 0.321569 0.341176
+Ks 0.330000 0.330000 0.330000
+map_Kd Box_with_character/material_59.bmp
+
+newmtl material_60
+Ka 0.000000 0.000000 0.000000
+Kd 0.447059 0.133333 0.101961
+Ks 0.330000 0.330000 0.330000
+map_Kd Box_with_character/material_60.bmp
+
+newmtl material_17
+Ka 0.000000 0.000000 0.000000
+Kd 0.388235 0.290196 0.133333
+Ks 0.330000 0.330000 0.330000
+map_Kd Box_with_character/material_17.bmp
+
+newmtl Material_9
+Ka 0.000000 0.000000 0.000000
+Kd 0.423529 0.223529 0.196078
+Ks 0.330000 0.330000 0.330000
+map_Kd Box_with_character/Material_9.jpg
+
+newmtl FrontColor
+Ka 0.000000 0.000000 0.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.330000 0.330000 0.330000
+
+newmtl Material_10
+Ka 0.000000 0.000000 0.000000
+Kd 0.235294 0.152941 0.196078
+Ks 0.330000 0.330000 0.330000
+map_Kd Box_with_character/Material_10.bmp
+
+newmtl _Color_I09_1
+Ka 0.000000 0.000000 0.000000
+Kd 0.596078 0.596078 1.000000
+Ks 0.330000 0.330000 0.330000
+
+newmtl Material_12
+Ka 0.000000 0.000000 0.000000
+Kd 0.411765 0.466667 0.619608
+Ks 0.330000 0.330000 0.330000
+map_Kd Box_with_character/Material_12.bmp
+
+newmtl _1
+Ka 0.000000 0.000000 0.000000
+Kd 0.498039 0.290196 0.109804
+Ks 0.330000 0.330000 0.330000
+map_Kd Box_with_character/_1.jpg
+
